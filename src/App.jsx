@@ -188,11 +188,9 @@ function App() {
           {totalByteSize > 0 && (
             <div 
               className="block-fill" 
-              style={{ height: `${fillPercentage}%` }}
+              style={{ height: `${Math.max(MIN_FILL_HEIGHT, fillPercentage)}%` }}
             >
-              <div className="capacity-label">
-                {formatCapacityUtilization(totalByteSize)}
-              </div>
+              <div className="capacity-label">{fillPercentage.toFixed(1)}%</div>
             </div>
           )}
           
@@ -246,6 +244,11 @@ function App() {
           </div>
         )}
       </div>
+      {totalByteSize > 0 && (
+        <div className="capacity-text">
+          {fillPercentage.toFixed(1)}% of the full DA Capacity utilised for the Block
+        </div>
+      )}
     </div>
   )
 }
