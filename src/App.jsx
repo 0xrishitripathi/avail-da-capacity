@@ -112,8 +112,8 @@ function App() {
   const rawFillPercentage = (totalByteSize / MAX_BLOCK_SIZE_BYTES) * 100;
   // For display, we use the raw percentage value
   const displayPercentage = rawFillPercentage;
-  // For visual height, ensure a minimum visible height for very small values
-  const fillPercentage = rawFillPercentage > 0 ? Math.max(MIN_FILL_HEIGHT, rawFillPercentage) : 0;
+  // For visual height, only show fill if percentage is 1% or more
+  const fillPercentage = rawFillPercentage >= 1 ? rawFillPercentage : 0;
   
   // Format byte size for display
   const formatByteSize = (bytes) => {
@@ -186,16 +186,23 @@ function App() {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          {/* Only show the block fill when there's actual data */}
+          {/* Show percentage for all blocks with data */}
           {totalByteSize > 0 && (
-            <div 
-              className="block-fill" 
-              style={{ height: `${fillPercentage}%` }}
-            >
-              <div className="capacity-label">{displayPercentage.toFixed(1)}%</div>
-            </div>
+            <>
+              {/* Only show the block fill when percentage is 1% or more */}
+              {displayPercentage >= 1 && (
+                <div 
+                  className="block-fill" 
+                  style={{ height: `${fillPercentage}%` }}
+                >
+                </div>
+              )}
+              {/* Always show the percentage label */}
+              <div className={displayPercentage >= 1 ? "capacity-label" : "capacity-label-no-fill"}>
+                {displayPercentage.toFixed(2)}%
+              </div>
+            </>
           )}
-          
           <a 
             href={`${AVAIL_EXPLORER_URL}${blockNumber}`} 
             target="_blank" 
@@ -246,11 +253,10 @@ function App() {
           </div>
         )}
       </div>
-      {totalByteSize > 0 && (
-        <div className="capacity-text">
-          {displayPercentage.toFixed(1)}% of the full DA Capacity utilised for the Block
-        </div>
-      )}
+      {/* Always show text for blocks, even with 0% utilization */}
+      <div className="capacity-text">
+        {Math.floor(displayPercentage)}% of the full DA Capacity utilised for the Block
+      </div>
     </div>
   )
 }
