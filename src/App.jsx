@@ -110,7 +110,9 @@ function App() {
   
   // Calculate fill percentage (how much of the block is filled)
   const rawFillPercentage = (totalByteSize / MAX_BLOCK_SIZE_BYTES) * 100;
-  // Ensure a minimum visible height for very small values, but keep the actual percentage for display
+  // For display, we use the raw percentage value
+  const displayPercentage = rawFillPercentage;
+  // For visual height, ensure a minimum visible height for very small values
   const fillPercentage = rawFillPercentage > 0 ? Math.max(MIN_FILL_HEIGHT, rawFillPercentage) : 0;
   
   // Format byte size for display
@@ -172,7 +174,7 @@ function App() {
       <div className="logo-container">
         <img src="/avail.svg" alt="Avail Logo" className="avail-logo" />
       </div>
-      <p className="app-subtitle">Avail DA: Boundless DA Capacity – Visualised Block-by-Block</p>
+      <p className="app-subtitle">Avail DA Capacity : Visualised Block-by-Block</p>
       
       <div className="block-info">
         <div className="time-remaining">Next block in: {formatTimeRemaining(timeRemaining)}</div>
@@ -188,9 +190,9 @@ function App() {
           {totalByteSize > 0 && (
             <div 
               className="block-fill" 
-              style={{ height: `${Math.max(MIN_FILL_HEIGHT, fillPercentage)}%` }}
+              style={{ height: `${fillPercentage}%` }}
             >
-              <div className="capacity-label">{fillPercentage.toFixed(1)}%</div>
+              <div className="capacity-label">{displayPercentage.toFixed(1)}%</div>
             </div>
           )}
           
@@ -246,7 +248,7 @@ function App() {
       </div>
       {totalByteSize > 0 && (
         <div className="capacity-text">
-          {fillPercentage.toFixed(1)}% of the full DA Capacity utilised for the Block
+          {displayPercentage.toFixed(1)}% of the full DA Capacity utilised for the Block
         </div>
       )}
     </div>
