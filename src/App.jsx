@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { fetchAvailBlockData, fetchSpecificBlockData } from './services/availApi'
-import BlockCube from './components/BlockCube'
 import './App.css'
 
 // Constants
 const MAX_BLOCK_SIZE_BYTES = 4 * 1024 * 1024; // 4MB in bytes
 const BLOCK_TIME_MS = 20000; // 20 seconds in milliseconds
 const AVAIL_EXPLORER_URL = 'https://avail.subscan.io/block/';
+const MIN_FILL_HEIGHT = 5; // Minimum height in percentage for visibility
 
 function App() {
   const [blockNumber, setBlockNumber] = useState(0);
@@ -19,8 +19,7 @@ function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [blockStartTime, setBlockStartTime] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(BLOCK_TIME_MS);
-  const [isFillingUp, setIsFillingUp] = useState(false);
-  const prevFillRef = { current: 0 }; // Using a simple object as we don't need a React ref here anymore
+  const [showBlobInfo, setShowBlobInfo] = useState(false);
 
   // Function to fetch the initial block data
   const initializeBlockData = async () => {
@@ -115,25 +114,7 @@ function App() {
   const displayPercentage = rawFillPercentage;
   // For visual height, only show fill if percentage is 1% or more
   const fillPercentage = rawFillPercentage >= 1 ? rawFillPercentage : 0;
-
-  // Detect fill changes to trigger ripple effects
-  useEffect(() => {
-    // Only trigger fill ripples when the fill level increases
-    if (fillPercentage > prevFillRef.current + 1) {
-      setIsFillingUp(true);
-      
-      // Reset the filling state after animation completes
-      const timer = setTimeout(() => {
-        setIsFillingUp(false);
-      }, 1500);
-      
-      // Update the previous fill reference
-      prevFillRef.current = fillPercentage;
-      
-      return () => clearTimeout(timer);
-    }
-  }, [fillPercentage]);
-
+  
   // Format byte size for display
   const formatByteSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -163,6 +144,15 @@ function App() {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
+  // Handle mouse events for blob info
+  const handleMouseEnter = () => {
+    setShowBlobInfo(true);
+  };
+
+  const handleMouseLeave = () => {
+    setShowBlobInfo(false);
+  };
+
   if (isLoading) {
     return (
       <div className="app-container">
@@ -190,20 +180,79 @@ function App() {
         <div className="time-remaining">Next block in: {formatTimeRemaining(timeRemaining)}</div>
       </div>
       
-      <BlockCube 
-        blockNumber={blockNumber}
-        blockDetails={blockDetails}
-        displayPercentage={displayPercentage}
-        fillPercentage={fillPercentage}
-        isNewBlock={isNewBlock}
-        isFillingUp={isFillingUp}
-        totalByteSize={totalByteSize}
-        formatByteSize={formatByteSize}
-        formatCapacityUtilization={formatCapacityUtilization}
-        formatSignerAddress={formatSignerAddress}
-        explorerUrl={AVAIL_EXPLORER_URL}
-      />
-      
+      <div className="block-container">
+        <div 
+          className={`block ${isNewBlock ? 'pulse' : ''}`}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {/* Show percentage for all blocks with data */}
+          {totalByteSize > 0 && (
+            <>
+              {/* Only show the block fill when percentage is 1% or more */}
+              {displayPercentage >= 1 && (
+                <div 
+                  className="block-fill" 
+                  style={{ height: `${fillPercentage}%` }}
+                >
+                </div>
+              )}
+              {/* Always show the percentage label */}
+              <div className={displayPercentage >= 1 ? "capacity-label" : "capacity-label-no-fill"}>
+                {displayPercentage.toFixed(2)}%
+              </div>
+            </>
+          )}
+          <a 
+            href={`${AVAIL_EXPLORER_URL}${blockNumber}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block-number-link"
+          >
+            #{blockNumber}
+          </a>
+        </div>
+        
+        {showBlobInfo && (
+          <div className="blob-info-popup">
+            <div className="blob-info-header">block info</div>
+            <div className="blob-info-content">
+              <div className="blob-info-item">
+                <div className="blob-info-line">
+                  <span className="blob-info-key">block_size:</span> 
+                  <span className="blob-info-value">4 MB</span>
+                </div>
+                
+                {blockDetails.length > 0 && (
+                  <>
+                    {blockDetails.map((blob, index) => (
+                      <Fragment key={index}>
+                        <div className="blob-info-line">
+                          <span className="blob-info-key">blob_size:</span> 
+                          <span className="blob-info-value">{formatByteSize(blob.byteSize)}</span>
+                        </div>
+                        <div className="blob-info-line">
+                          <span className="blob-info-key">app_ID:</span> 
+                          <span className="blob-info-value">{blob.appId}</span>
+                        </div>
+                        <div className="blob-info-line">
+                          <span className="blob-info-key">signer:</span> 
+                          <span className="blob-info-value">{formatSignerAddress(blob.signer)}</span>
+                        </div>
+                      </Fragment>
+                    ))}
+                  </>
+                )}
+                
+                <div className="blob-info-line">
+                  <span className="blob-info-key">DA Capacity used:</span> 
+                  <span className="blob-info-value">{formatCapacityUtilization(totalByteSize)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
       {/* Always show text for blocks, even with 0% utilization */}
       <div className="capacity-text">
         {Math.floor(displayPercentage)}% of the full DA Capacity utilised for the Block
